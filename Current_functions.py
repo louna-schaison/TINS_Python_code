@@ -8,6 +8,10 @@ from Parameters import *
 import numpy as np
 import matplotlib.pyplot as mpl
 
+def ATPase (Vmax,Km, c_ext):
+    return (Vmax*c_ext)/(Km+c_ext)
+
+
 def I_KIR(R,T,F,Gk, V, c_ext,c_int):
     """
 
