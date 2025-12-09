@@ -2,7 +2,6 @@
 This python file contains all the parameters used in the code.
 """
 
-
 import numpy as np
 
 R = 8.3 # J mol-1 K-1
@@ -19,15 +18,15 @@ Nrest= 0.140 # Resting M., outside
 ENa=0.130 #V
 
 # Leak conductances and resting condition
-Gl = 35*1e-9 # Leak conductance of 35 nS. #Change
+Gm = 45*1e-9 # Leak conductance of 35 nS. #Change
 
-El = -0.072 # V resting potential of the leak
+El = -0.086# V resting potential of the leak
 
 # Kir parameters
-Gk = 120*1e-12 #S
+Gk = 200*1e-12 #S
 
 #HCN parameters
-Gh=46*1e-12 #S
+Gh=10*1e-12 #S
 Eh=-0.03 #V
 a = 0.63 #mV-1
 b = 0.063  #mV-1
@@ -36,8 +35,11 @@ V_half = -100.0 #mV
 gamma= 3.15
 
 #ATPase NA+/K+
-Km = 0.002 # M the affinity of the ATPase Na+/K+ for K+
-Vmax = 0.04 # M s-1 vitesse max ATPase
+KmK = 0.005 # M the affinity of the ATPase Na+/K+ for K+
+Vmax = 0.04 # M.s-1 vitesse max ATPase
+KmNa= 0.01 #M/L
+Imax =2.08*1e-11 #A
+
 
 
 #  Stimulation (axonal activity characteristics)
@@ -49,7 +51,7 @@ times = np.arange(0,4,1e-6) #time-window studied
 
 # Axon-myelin properties
 
-Cm =24*1e-12 # f # to refine ? 0.1 uF? of the myelin
+Cm = 24*1e-12 # farad #capacitance of the myelin
 
 Vint = 6e-15 # litres. Volume of the internode peri-axonal space.
 l_internode= 5e-5 #m 50um
@@ -58,4 +60,3 @@ e_myelin = 250*1e-9 #m 250 nm
 V_myelin = (((e_myelin+r_axon)**2*np.pi-r_axon**2*np.pi)*l_internode)*1000#en L
 e_submyelin = 2*1e-8 #m
 V_submyelin = (((e_submyelin+r_axon)**2*np.pi-r_axon**2*np.pi)*l_internode)*1000#en L (bonne estimation par Vint)
-
