@@ -8,19 +8,12 @@ from Parameters import *
 import numpy as np
 import matplotlib.pyplot as mpl
 
-def ATPase (Vmax,Km, c_ext):
-    return (Vmax*c_ext)/(Km+c_ext)
+
 
 def ATPase_2 (Imax, KmK, KmNa, Ke, Ni=Ni):
     F= (1+KmK/Ke)**(-2)+ (1+KmNa/Ni)**(-3)
     Ina= 3*Imax*F
     Ik= -2*Imax*F
-    return(Ina, Ik)
-
-def ATPase_3 (Imax, KmK, KmNa, Ke, Ni=Ni):
-    F= Imax*(Ke/(Ke+KmK))*((Ni**1.5)/(Ni**1.5+KmNa**1.5))*(V+150)/(V+200)
-    Ina = 3  * F
-    Ik = -2  * F
     return(Ina, Ik)
 
 
@@ -78,6 +71,9 @@ def tau_h(a,b,c,V,V_half):
     beta = a * np.exp(c * (V * 1000 - V_half))
     return 1/(alpha + beta)
 
+def gap_j(R,T,F,myelinK,V,Gg,El,Ki=Ki):
+    return Gg*(V-El)/(np.exp(F*(V-El)/(R*T))-1)*(myelinK-Ki*np.exp(F*(V-El)/(R*T)))
+
 def I_H(Ph, Gh,V,gamma,c_ext,c_int,Ni=0.001,Nrest= 0.140 ):
     """
     :param Ph: probability of HCN channels to be open at a given V
@@ -102,7 +98,7 @@ from scipy.optimize import root
 def equations(vars):
     Imax, Gk, Gh = vars
     eq1 =  1e10*(I_KIR(R,T,F,Gk,El,Krest,Ki)+sum(I_H(P_openH(a,b,c,El,V_half),Gh,El,gamma,Krest,Ki,Ni,Nrest))+sum(ATPase_2(Imax, KmK,KmNa,Krest,Ni)))
-    eq2 = dt*(I_KIR(R,T,F,Gk,El,Krest,Ki)-I_H(P_openH(a,b,c,El,V_half),Gh,El,gamma,Krest,Ki,Ni,Nrest)[0]+ATPase_2(Imax, KmK,KmNa,Krest,Ni)[1])/(V_myelin*F)
+    eq2 = dt*(I_KIR(R,T,F,Gk,El,Krest,Ki)+I_H(P_openH(a,b,c,El,V_half),Gh,El,gamma,Krest,Ki,Ni,Nrest)[0]+ATPase_2(Imax, KmK,KmNa,Krest,Ni)[1])/(V_myelin*F)
     eq3= Gm/50 - Gk*(1/(1 + np.exp((El-E(R,T,F,Krest,Ki)+0.015)/0.007)))*np.sqrt(Krest) -Gh*P_openH(a,b,c,El,V_half) -Imax
     return [eq1, eq2, eq3]
 
@@ -112,8 +108,8 @@ solution = root(
     initial_guess,
     method='lm'  # Levenberg-Marquardt
 )
-Imax, Gk, Gh = solution.x
-print(solution.x)
+#Imax, Gk, Gh = solution.x
+#print(solution.x)
 
 
 if __name__ == "__main__":
@@ -127,18 +123,24 @@ if __name__ == "__main__":
         Ph = P_openH(a, b, c, V[i], V_half)
         Ih_curve[i] = sum(I_H( Ph, Gh, V[i],gamma,Krest,Ki ))
         I_kcurve[i] = I_KIR(R, T, F, Gk, V[i], Krest, Ki)
+
     fig,ax=mpl.subplots()
     mpl.plot(V*1000, I_kcurve*1e12, color='red')
     ax.set_xlabel("V(mV)")
     ax.set_ylabel("I(pA)")
     mpl.title("Ik-V curve at resting K+ concentration")
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     mpl.axhline(y=0, color='k',linestyle='--')
     mpl.axvline(x=0, color='k',linestyle='--')
     mpl.axvline(x=El*1000, color='grey',label='Resting potential')
     mpl.xlim(-120, 40)
     mpl.ylim(-500, 20)
     mpl.legend()
+
     fig, ax = mpl.subplots()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
     mpl.plot(V * 1000, Ih_curve*1e12, color='red')
     ax.set_xlabel("V (mV)")
     ax.set_ylabel("I(pA)")

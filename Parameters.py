@@ -19,14 +19,15 @@ ENa=0.130 #V
 
 # Leak conductances and resting condition
 Gm = 45*1e-9 # Leak conductance of 35 nS. #Change
+El = -0.086# V resting potential
+Gg = 540*1e-12 #conductance of the connection with oligo and astrocytes
 
-El = -0.086# V resting potential of the leak
 
 # Kir parameters
-Gk = 200*1e-12 #S
+Gk = 5.65744323e-07 #S
 
 #HCN parameters
-Gh=10*1e-12 #S
+Gh=2.55675530e-09#S
 Eh=-0.03 #V
 a = 0.63 #mV-1
 b = 0.063  #mV-1
@@ -38,21 +39,18 @@ gamma= 3.15
 KmK = 0.005 # M the affinity of the ATPase Na+/K+ for K+
 Vmax = 0.04 # M.s-1 vitesse max ATPase
 KmNa= 0.01 #M/L
-Imax =2.08*1e-11 #A
-
+Imax =3.15025237e-11 #A
 
 
 #  Stimulation (axonal activity characteristics)
 dt = 1e-6 # s, 10 milliseconds of delta t
 APefflux = 0.002 # M change in K(submyelin) with AP.
-APtimes = np.arange(0,0.2,0.01) # Roughly 20 APs at 10ms intervals.
+APtimes = np.arange(0,0.2,0.01) # Roughly 20 APs at 10ms intervals. # this mimicks the stimulation in the paper
 times = np.arange(0,4,1e-6) #time-window studied
 
 
 # Axon-myelin properties
-
 Cm = 24*1e-12 # farad #capacitance of the myelin
-
 Vint = 6e-15 # litres. Volume of the internode peri-axonal space.
 l_internode= 5e-5 #m 50um
 r_axon= 0.5*1e-6 #m 0.5um
