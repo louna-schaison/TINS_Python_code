@@ -3,14 +3,23 @@ This python file contains the functions used in the code to calculate current th
 It also display the I-V curves of KIR and HCN channel when ran as main.
 """
 
-import Parameters
-from Parameters import *
+
+from core.Parameters import *
 import numpy as np
-import matplotlib.pyplot as mpl
+
 from scipy.optimize import root
 
 
 def ATPase (Imax, KmK, KmNa, Ke, Ni=Ni):
+    """
+
+    :param Imax: Maximum current capacity
+    :param KmK: dissociation constant for K+
+    :param KmNa: dissociation constant for Na+
+    :param Ke: External K+ concentration (M)
+    :param Ni: Internal Na+ concentration (M)
+    :return: tuple of the K+ and Na+ current going through the ATPase in A.s-1
+    """
     F= (1+KmK/Ke)**(-2)+ (1+KmNa/Ni)**(-3)
     Ina= 3*Imax*F
     Ik= -2*Imax*F
@@ -20,9 +29,7 @@ def ATPase (Imax, KmK, KmNa, Ke, Ni=Ni):
 def I_KIR(R,T,F,Gk, V, c_ext,c_int):
     """
 
-    :param R:
-    :param T:
-    :param F:
+    :param R,T,F: physical constants
     :param Gk: conductance of the KIR channels of the internode (S)
     :param V: membrane potential (V)
     :param c_ext: K+ concentration of the external compartment (M)
@@ -42,12 +49,10 @@ def P_k(R,T,F,V,c_ext,c_int):
 def E( R,T,F,c_ext,c_int):
     """
 
-    :param R:
-    :param T:
-    :param F:
+    :param R,T,F:physical constants
     :param c_ext: Ion concentration of the external compartment (M)
     :param c_int: Ion concentration of the internal compartment (M)
-    :return: Equilibrium potential of the ion depending on the concentrations
+    :return: Equilibrium potential of the ion depending on the concentrations (Nernst Law)
     """
     return (R * T / F) * np.log(c_ext / c_int)
 
@@ -68,20 +73,42 @@ def P_h(a, b, c, V, V_half):
     return alpha/(alpha + beta)
 
 def Fgamma_h(Eh,c_ext,c_int,Nrest,Ni):
+    #return the permeability ration PK+/PNa+ of the HCN channel
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
     return (ENa/Eh-1)/(1-EK/Eh)
 
 
 def Fgamma_l(c_ext,c_int,Nrest,Ni):
+    # return the permeability ration PK+/PNa+ of the leak channel
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
     return -ENa/EK
 
 def Gi(Gm, Gp, Gg,Ga, n_internode):
+    """
+
+    :param Gm: Whole cell conductance (S)
+    :param Gp: Oligodendrocyte process conductance (S)
+    :param Gg: Oligodendrocyte-astrocytes gap junction conductance (S)
+    :param Ga: Astrocytes membrane conductance (S)
+    :param n_internode:number of internodes
+    :return:  total conductance of the internode based on estimated formula
+    """
     return 1/((n_internode/Gm)-1/Gp)-1/((1/Ga)+(1/Gg))
 
 def gap_j_leak(V,gamma_l,Gl,c_ext,c_int,Nrest, Ni ):
+    """
+
+    :param V: membrane potential (V)
+    :param gamma_l: PK+/PNa+ for the leak channel
+    :param Gl: leak conductance (S)
+    :param c_ext: External K+ concentration
+    :param c_int: Internal K+ concentraiton
+    :param Nrest:External Na+ concentration
+    :param Ni:Internal Na+ concentration
+    :return:Current (in A.s-1) through the leak channel
+    """
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
     IlK= Gl * (gamma_l/(1+gamma_l))* (V - EK)
@@ -92,7 +119,7 @@ def gap_j_leak(V,gamma_l,Gl,c_ext,c_int,Nrest, Ni ):
 def gap_j(R,T,F,myelinK,V,Gg,El,Ki=Ki):
     return Gg*(V-El)/(np.exp(F*(V-El)/(R*T))-1)*(myelinK-Ki*np.exp(F*(V-El)/(R*T)))
 
-def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni=0.001,Nrest= 0.140 ):
+def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni,Nrest):
     """
     :param Ph: probability of HCN channels to be open at a given V
     :param Gh: conductance of the HCN channel in the internode (S)
@@ -102,7 +129,7 @@ def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni=0.001,Nrest= 0.140 ):
     :param c_int: K+ concentration of the internal compartment (M)
     :param Ni: Na+ concentration of the internaal compartment (M)
     :param Nrest:Na+ concentration of the external compartment (M)
-    :return: Current (in A) based on H-H model
+    :return: Current (in A.s-1) through HCN based on H-H model
     """
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
@@ -111,6 +138,7 @@ def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni=0.001,Nrest= 0.140 ):
     return IhK, IhNa #pour l'instant return le courant sortant de K (positif) entraint de Na+ (negatif)
 
 def diffK(D,l_paranode, S,V_submyelin,submyelinK, extK):
+    # not verified
     return -(S/V_submyelin)*(D/l_paranode)*(submyelinK-extK)
 
 def equations(vars):
@@ -125,63 +153,3 @@ initial_guess = [1e-10,200*1e-10, 10*1e-10]
 #Imax, Gk, Gh = solution.x
 #print(solution.x)
 
-
-if __name__ == "__main__":
-    """ Tracing the I-V curves of both channels
-    """
-    V = np.arange(-0.120, 0.040, 0.01)
-    Ih_curve = np.full(len(V), 0.)
-    I_kcurve = np.full(len(V), 0.)
-    Il_curve = np.full(len(V), 0.)
-    gamma_h=Fgamma_h(El,Krest,Ki,Nrest,Ni)
-    gamma_l = Fgamma_l( Krest, Ki, Nrest, Ni)
-    for i in range(len(V)):
-        Ph = P_openH(a, b, c, V[i], V_half)
-        Ih_curve[i] = sum(I_H( Ph, Gh, V[i],gamma_h,Krest,Ki ))
-        I_kcurve[i] = I_KIR(R, T, F, Gk, V[i], Krest, Ki)
-        Il_curve[i]= sum(gap_j_leak(V[i],gamma_l,Gl,Krest,Ki,Nrest,Ni))
-
-    fig,ax=mpl.subplots()
-    mpl.plot(V*1000, I_kcurve*1e12, color='red')
-    ax.set_xlabel("V(mV)")
-    ax.set_ylabel("I(pA)")
-    mpl.title("Ik-V curve at resting K+ concentration")
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    mpl.axhline(y=0, color='k',linestyle='--')
-    mpl.axvline(x=0, color='k',linestyle='--')
-    mpl.axvline(x=El*1000, color='grey',label='Resting potential')
-    #mpl.xlim(-120, 40)
-    #mpl.ylim(-500, 20)
-    mpl.legend()
-
-    fig, ax = mpl.subplots()
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    mpl.plot(V * 1000, Ih_curve*1e12, color='red')
-    ax.set_xlabel("V (mV)")
-    ax.set_ylabel("I(pA)")
-    mpl.title(" Ih-V curve at resting K+ concentration")
-    mpl.axhline(y=0, color='k', linestyle='--')
-    mpl.axvline(x=0, color='k', linestyle='--')
-    mpl.axvline(x=El*1000, color='grey', label='Resting potential')
-    mpl.xlim(-120, 40)
-    mpl.ylim(-160 , 20)
-    mpl.legend()
-
-    fig, ax = mpl.subplots()
-    mpl.plot(V * 1000, Il_curve , color='red')
-    ax.set_xlabel("V(mV)")
-    ax.set_ylabel("I(pA)")
-    mpl.title("IL-V curve at resting K+ concentration")
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    mpl.axhline(y=0, color='k', linestyle='--')
-    mpl.axvline(x=0, color='k', linestyle='--')
-    mpl.axvline(x=El * 1000, color='grey', label='Resting potential')
-    #mpl.xlim(-120, 40)
-    #mpl.ylim(-500, 20)
-    mpl.legend()
-
-
-    mpl.show()

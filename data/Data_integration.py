@@ -1,8 +1,3 @@
-from matplotlib.pyplot import subplots
-
-import Parameters
-from Parameters import *
-import numpy as np
 import matplotlib.pyplot as mpl
 import pandas as pd
 

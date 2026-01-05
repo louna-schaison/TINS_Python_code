@@ -34,7 +34,7 @@ a = 0.63 #mV-1
 b = 0.063  #mV-1
 c = 0.079  #mV-1
 V_half = -100.0 #mV
-gamma_h= 2.6
+gamma_h= 3.9
 
 #ATPase NA+/K+
 KmK = 0.005 # M the affinity of the ATPase Na+/K+ for K+
@@ -44,6 +44,8 @@ Imax =3.15025237e-11 #A
 #Hemichannels leak
 Gl=5.65744323e-07
 gamma_l= 1.3
+
+
 
 
 #  Stimulation (axonal activity characteristics)
