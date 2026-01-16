@@ -23,7 +23,7 @@ def ATPase (Imax, KmK, KmNa, Ke, Ni=Ni):
     F= (1+KmK/Ke)**(-2)+ (1+KmNa/Ni)**(-3)
     Ina= 3*Imax*F
     Ik= -2*Imax*F
-    return(Ik, Ina)
+    return Ik, Ina
 
 
 def I_KIR(R,T,F,Gk, V, c_ext,c_int):
@@ -54,7 +54,7 @@ def E( R,T,F,c_ext,c_int):
     :param c_int: Ion concentration of the internal compartment (M)
     :return: Equilibrium potential of the ion depending on the concentrations (Nernst Law)
     """
-    return (R * T / F) * np.log(c_ext / c_int)
+    return (R * T / F) * np.log((c_ext*1000) / (c_int*1000))
 
 
 
@@ -73,19 +73,19 @@ def P_h(a, b, c, V, V_half):
     return alpha/(alpha + beta)
 
 def Fgamma_h(Eh,c_ext,c_int,Nrest,Ni):
-    #return the permeability ration PK+/PNa+ of the HCN channel
+    #return the permeability ratio PK+/PNa+ of the HCN channel
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
     return (ENa/Eh-1)/(1-EK/Eh)
 
 
 def Fgamma_l(c_ext,c_int,Nrest,Ni):
-    # return the permeability ration PK+/PNa+ of the leak channel
+    # return the permeability ratio PK+/PNa+ of the leak channel
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
     return -ENa/EK
 
-def Gi(Gm, Gp, Gg,Ga, n_internode):
+def G_i(Gm, Gp,Ga, n_internode, Gg=0):
     """
 
     :param Gm: Whole cell conductance (S)
@@ -97,10 +97,11 @@ def Gi(Gm, Gp, Gg,Ga, n_internode):
     """
     return 1/((n_internode/Gm)-1/Gp)-1/((1/Ga)+(1/Gg))
 
-def gap_j_leak(V,gamma_l,Gl,c_ext,c_int,Nrest, Ni ):
+def gap_leak(V,Ve,gamma_l,Gl,c_ext,c_int,Nrest, Ni ):
     """
 
     :param V: membrane potential (V)
+    :param Ve : membrane potential of the other compartment (V)
     :param gamma_l: PK+/PNa+ for the leak channel
     :param Gl: leak conductance (S)
     :param c_ext: External K+ concentration
@@ -111,15 +112,15 @@ def gap_j_leak(V,gamma_l,Gl,c_ext,c_int,Nrest, Ni ):
     """
     EK=E(R,T,F,c_ext,c_int)
     ENa= E(R,T,F,Nrest,Ni)
-    IlK= Gl * (gamma_l/(1+gamma_l))* (V - EK)
-    IlNa = Gl * (1 / (1 + gamma_l))  * (V - ENa)
+    IlK= Gl * (gamma_l/(1+gamma_l))* (V - Ve - EK)
+    IlNa = Gl * (1 / (1 + gamma_l))  * (V - Ve - ENa)
     return IlK, IlNa
 
 
-def gap_j(R,T,F,myelinK,V,Gg,El,Ki=Ki):
-    return Gg*(V-El)/(np.exp(F*(V-El)/(R*T))-1)*(myelinK-Ki*np.exp(F*(V-El)/(R*T)))
 
-def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni,Nrest):
+
+
+def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Nrest,Ni):
     """
     :param Ph: probability of HCN channels to be open at a given V
     :param Gh: conductance of the HCN channel in the internode (S)
@@ -127,7 +128,7 @@ def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni,Nrest):
     :param V: membrane potential (V)
     :param c_ext: K+ concentration of the external compartment (M)
     :param c_int: K+ concentration of the internal compartment (M)
-    :param Ni: Na+ concentration of the internaal compartment (M)
+    :param Ni: Na+ concentration of the internal compartment (M)
     :param Nrest:Na+ concentration of the external compartment (M)
     :return: Current (in A.s-1) through HCN based on H-H model
     """
@@ -137,19 +138,28 @@ def I_H(Ph, Gh,V,gamma_h,c_ext,c_int,Ni,Nrest):
     IhNa = Gh * (1 / (1 + gamma_h)) * Ph * (V - ENa)
     return IhK, IhNa #pour l'instant return le courant sortant de K (positif) entraint de Na+ (negatif)
 
-def diffK(D,l_paranode, S,V_submyelin,submyelinK, extK):
-    # not verified
-    return -(S/V_submyelin)*(D/l_paranode)*(submyelinK-extK)
 
-def equations(vars):
-    Imax, Gk, Gh , Gl = vars
-    eq1 =  1e10*(I_KIR(R,T,F,Gk,El,Krest,Ki)+sum(I_H(P_openH(a,b,c,El,V_half),Gh,El,gamma,Krest,Ki,Ni,Nrest))+sum(ATPase(Imax, KmK,KmNa,Krest,Ni)))+Gl*El
-    eq2 = dt*(I_KIR(R,T,F,Gk,El,Krest,Ki)+I_H(P_openH(a,b,c,El,V_half),Gh,El,gamma,Krest,Ki,Ni,Nrest)[0]+ATPase(Imax, KmK,KmNa,Krest,Ni)[1])/(V_myelin*F)
-    eq3= Gi(Gm,Gp,Gg,Ga,n_internode) - Gk*(1/(1 + np.exp((El-E(R,T,F,Krest,Ki)+0.015)/0.007)))*np.sqrt(Krest) -Gh*P_openH(a,b,c,El,V_half)-Gl
-    return [eq1, eq2, eq3]
+def V_t_dt_1(V_t,Cm,dt,I):
+    """
 
-initial_guess = [1e-10,200*1e-10, 10*1e-10]
-#solution = root(equations, initial_guess,method='lm'  # Levenberg-Marquardt )
-#Imax, Gk, Gh = solution.x
-#print(solution.x)
+    :param V_t: Voltage at the precedent time point t (V)
+    :param Cm: membrane capacitance (F)
+    :param dt: time between to time points (s)
+    :param Ike: KIR current at the external interface (A)
+    :param Iks: KIR current at the submyelin interface (A)
+    :param Ihe: HCN current at the external interface (A)
+    :param Ihs: HCN current at the submyelin interface (A)
+    :param Iae: ATPase current at the external interface (A)
+    :param Ias: ATPase current at the submyelin interface (A)
+    :param Il: Leak current (GAP hemichannels) (A)
+    :return:
+    """
+    return V_t-(dt/Cm)*(I)
+
+
+
+def flux(I,Vol, F, dt):
+    # transforms the current into the associate Delta of concentration (==the flux)
+    return (I*dt)/(Vol*F)
+
 
